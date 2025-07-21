@@ -21,7 +21,7 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
 
   const error = searchParams?.error;
 
-  const userId = await getUserCookie(boardId);
+  const userId = await getUserCookie(board.uuid);
   const currentUser = board.users.find((u) => u.id === userId);
 
   if (!currentUser) {

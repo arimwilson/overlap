@@ -27,9 +27,9 @@ export async function createBoard(formData: FormData) {
     return redirect('/?error=' + encodeURIComponent(nameResult.error.errors[0].message));
   }
 
-  const { boardCode, userId } = await dbCreateBoard(nameResult.data, timezone);
+  const { boardCode, boardUuid, userId } = await dbCreateBoard(nameResult.data, timezone);
 
-  setUserCookie(boardCode, userId);
+  setUserCookie(boardUuid, userId);
 
   revalidatePath(`/board/${boardCode}`);
   redirect(`/board/${boardCode}`);
@@ -54,8 +54,8 @@ export async function joinBoard(formData: FormData) {
     return redirect(`/board/${boardIdResult.data}?error=` + encodeURIComponent("This board is full."));
   }
 
-  const { userId } = await dbJoinBoard(boardIdResult.data, nameResult.data, timezone);
-  setUserCookie(boardIdResult.data, userId);
+  const { userId } = await dbJoinBoard(board.uuid, nameResult.data, timezone);
+  setUserCookie(board.uuid, userId);
 
   revalidatePath(`/board/${boardIdResult.data}`);
   redirect(`/board/${boardIdResult.data}`);
@@ -78,8 +78,8 @@ export async function joinBoardFromPage(boardId: string, formData: FormData) {
       return { error: 'This board is full.' };
     }
   
-    const { userId } = await dbJoinBoard(boardId, nameResult.data, timezone);
-    setUserCookie(boardId, userId);
+    const { userId } = await dbJoinBoard(board.uuid, nameResult.data, timezone);
+    setUserCookie(board.uuid, userId);
   
     revalidatePath(`/board/${boardId}`);
     return { success: true };

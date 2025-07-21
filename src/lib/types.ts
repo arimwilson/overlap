@@ -9,6 +9,7 @@ export type Availability = Record<string, boolean>;
 
 export interface Board {
   id: string;
+  uuid: string;
   users: User[];
   availability: Record<string, Availability>;
 }

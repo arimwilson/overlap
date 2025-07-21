@@ -14,7 +14,7 @@ function generateCode(length = 5) {
 /**
  * Create a new board and its first user.
  */
-export async function createBoard(name: string, timezone: string): Promise<{ boardCode: string; userId: string }> {
+export async function createBoard(name: string, timezone: string): Promise<{ boardCode: string; boardUuid: string; userId: string }> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const boardCode = generateCode();
     const { data: board, error } = await supabase
@@ -35,7 +35,7 @@ export async function createBoard(name: string, timezone: string): Promise<{ boa
       .single();
 
     if (userError) throw new Error(userError.message);
-    return { boardCode: board.code, userId: user.id };
+    return { boardCode: board.code, boardUuid: board.id, userId: user.id };
   }
 
   throw new Error('Failed to generate unique board code');
@@ -44,24 +44,19 @@ export async function createBoard(name: string, timezone: string): Promise<{ boa
 /**
  * Join an existing board.
  */
-export async function joinBoard(boardCode: string, name: string, timezone: string): Promise<{ boardId: string; userId: string }> {
-  const { data: board, error } = await supabase
-    .from('boards')
-    .select('id, code')
-    .eq('code', boardCode)
-    .single();
-
-  if (error || !board) throw new Error('Board not found');
-
-  const { data: user, error: userError } = await supabase
+export async function joinBoard(boardUuid: string, name: string, timezone: string): Promise<{ userId: string }> {
+  const { data, error } = await supabase
     .from('board_users')
-    .insert({ board_id: board.id, name, timezone })
+    .upsert(
+      [{ board_id: boardUuid, name: name.trim(), timezone }],
+      { onConflict: 'board_id,name', ignoreDuplicates: false }
+    )
     .select('id')
     .single();
 
-  if (userError) throw new Error(userError.message);
+  if (error) throw new Error(error.message);
 
-  return { boardId: board.code, userId: user.id };
+  return { userId: data.id };
 }
 
 /**
@@ -96,7 +91,7 @@ export async function getBoard(boardCode: string): Promise<Board | null> {
     availability[row.user_id][slotId] = true;
   }
 
-  return { id: board.code, users, availability };
+  return { id: board.code, uuid: board.id, users, availability };
 }
 
 /**
