@@ -7,6 +7,7 @@ import {
   joinBoard as dbJoinBoard,
   getBoard,
   toggleAvailability as dbToggleAvailability,
+  updateUserTimezone as dbUpdateUserTimezone,
 } from '@/lib/db';
 import { setUserCookie } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
@@ -92,5 +93,10 @@ export async function toggleAvailability(boardId: string, userId: string, timeSl
     await dbToggleAvailability(boardId, userId, dayOfWeek, slotIndex, isAvailable);
     // In a real-time app, you'd use a service like Firebase Realtime DB or a WebSocket
     // to push updates to clients. For this example, revalidation is a simpler approach.
+    revalidatePath(`/board/${boardId}`);
+}
+
+export async function updateTimezone(boardId: string, userId: string, timezone: string) {
+    await dbUpdateUserTimezone(boardId, userId, timezone);
     revalidatePath(`/board/${boardId}`);
 }

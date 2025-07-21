@@ -1,15 +1,24 @@
 import type { Board } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Users, Clock } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Logo } from '../icons/Logo';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-export default function UserRoster({ board }: { board: Board }) {
+type Props = {
+  board: Board;
+  currentUserId: string;
+  onTimezoneChange: (tz: string) => void;
+};
+export default function UserRoster({ board, currentUserId, onTimezoneChange }: Props) {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(board.id);
     // You could add a toast notification here for feedback
   };
+
+  const timezones = typeof Intl.supportedValuesOf === 'function'
+    ? Intl.supportedValuesOf('timeZone')
+    : ['UTC'];
 
   return (
     <aside className="lg:w-80 lg:h-screen lg:border-r border-b lg:border-b-0">
@@ -47,7 +56,22 @@ export default function UserRoster({ board }: { board: Board }) {
                         <p className="font-semibold">{user.name}</p>
                         <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                             <Clock className="w-3 h-3" />
-                            {user.timezone}
+                            {user.id === currentUserId ? (
+                              <Select value={user.timezone} onValueChange={onTimezoneChange}>
+                                <SelectTrigger className="w-[160px] h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-64">
+                                  {timezones.map((tz) => (
+                                    <SelectItem key={tz} value={tz}>
+                                      {tz}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span>{user.timezone}</span>
+                            )}
                         </p>
                     </div>
                     </div>
