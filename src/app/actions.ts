@@ -38,6 +38,7 @@ export async function createBoard(formData: FormData) {
 
   setUserCookie(boardId, user.id);
 
+  revalidatePath(`/board/${boardId}`);
   redirect(`/board/${boardId}`);
 }
 
@@ -63,6 +64,7 @@ export async function joinBoard(formData: FormData) {
   const user = await updateUserOnBoard(boardIdResult.data, { name: nameResult.data, timezone });
   setUserCookie(boardIdResult.data, user.id);
 
+  revalidatePath(`/board/${boardIdResult.data}`);
   redirect(`/board/${boardIdResult.data}`);
 }
 
