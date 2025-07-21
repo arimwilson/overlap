@@ -1,3 +1,7 @@
+
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,6 +18,14 @@ import { createBoard, joinBoard } from '@/app/actions';
 import { Logo } from '@/components/icons/Logo';
 
 export default function Home() {
+  const [timezone, setTimezone] = useState('UTC');
+  const formCreateRef = useRef<HTMLFormElement>(null);
+  const formJoinRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, []);
+
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
       <div className="flex flex-col items-center gap-2 text-center mb-8">
@@ -33,7 +45,7 @@ export default function Home() {
             Start a new board and invite your team.
           </CardDescription>
         </CardHeader>
-        <form action={createBoard}>
+        <form action={createBoard} ref={formCreateRef}>
           <CardContent>
             <div className="space-y-2">
               <Label htmlFor="create-name">Your Name</Label>
@@ -43,6 +55,7 @@ export default function Home() {
                 placeholder="Ada Lovelace"
                 required
               />
+              <input type="hidden" name="timezone" value={timezone} />
             </div>
           </CardContent>
           <CardFooter>
@@ -60,7 +73,7 @@ export default function Home() {
             Enter a code to join an existing board.
           </CardDescription>
         </CardHeader>
-        <form action={joinBoard}>
+        <form action={joinBoard} ref={formJoinRef}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="join-code">Access Code</Label>
@@ -80,6 +93,7 @@ export default function Home() {
                 placeholder="Alan Turing"
                 required
               />
+               <input type="hidden" name="timezone" value={timezone} />
             </div>
           </CardContent>
           <CardFooter>
