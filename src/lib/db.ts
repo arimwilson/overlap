@@ -1,77 +1,141 @@
+import { supabase } from './supabaseClient';
+import type { Database } from './generated.types';
+import type { Board, User, Availability } from './types';
+
+function generateCode(length = 5) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 /**
- * This is a mock in-memory database to simulate Firestore.
- * In a real application, you would replace these functions
- * with calls to the Firebase SDK.
+ * Create a new board and its first user.
  */
-import type { Board, User } from './types';
-import { v4 as uuidv4 } from 'uuid';
+export async function createBoard(name: string, timezone: string): Promise<{ boardCode: string; userId: string }> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const boardCode = generateCode();
+    const { data: board, error } = await supabase
+      .from('boards')
+      .insert({ code: boardCode })
+      .select('id, code')
+      .single();
 
-const boards = new Map<string, Board>();
+    if (error) {
+      if (error.code === '23505') continue; // duplicate code
+      throw new Error(error.message);
+    }
 
-export async function getBoard(id: string): Promise<Board | null> {
-  return boards.get(id) || null;
-}
+    const { data: user, error: userError } = await supabase
+      .from('board_users')
+      .insert({ board_id: board.id, name, timezone })
+      .select('id')
+      .single();
 
-export async function createBoard(
-  boardId: string,
-  userName: string,
-  timezone: string
-): Promise<User> {
-  const userId = uuidv4();
-  const user: User = { id: userId, name: userName, timezone };
-
-  const newBoard: Board = {
-    id: boardId,
-    users: [user],
-    availability: {
-      [userId]: {},
-    },
-  };
-
-  boards.set(boardId, newBoard);
-  return user;
-}
-
-export async function updateUserOnBoard(
-  boardId: string,
-  { name, timezone }: { name: string, timezone: string }
-): Promise<User> {
-  const board = await getBoard(boardId);
-  if (!board) {
-    throw new Error('Board not found');
+    if (userError) throw new Error(userError.message);
+    return { boardCode: board.code, userId: user.id };
   }
 
-  const userId = uuidv4();
-  const newUser: User = { id: userId, name, timezone };
-
-  board.users.push(newUser);
-  board.availability[userId] = {};
-  
-  boards.set(boardId, board);
-
-  return newUser;
+  throw new Error('Failed to generate unique board code');
 }
 
+/**
+ * Join an existing board.
+ */
+export async function joinBoard(boardCode: string, name: string, timezone: string): Promise<{ boardId: string; userId: string }> {
+  const { data: board, error } = await supabase
+    .from('boards')
+    .select('id, code')
+    .eq('code', boardCode)
+    .single();
+
+  if (error || !board) throw new Error('Board not found');
+
+  const { data: user, error: userError } = await supabase
+    .from('board_users')
+    .insert({ board_id: board.id, name, timezone })
+    .select('id')
+    .single();
+
+  if (userError) throw new Error(userError.message);
+
+  return { boardId: board.code, userId: user.id };
+}
+
+/**
+ * Fetch board details with user roster and availability map.
+ */
+export async function getBoard(boardCode: string): Promise<Board | null> {
+  const { data: board } = await supabase
+    .from('boards')
+    .select('id, code')
+    .eq('code', boardCode)
+    .single();
+
+  if (!board) return null;
+
+  const { data: userRows } = await supabase
+    .from('board_users')
+    .select('id, name, timezone')
+    .eq('board_id', board.id)
+    .order('created_at', { ascending: true });
+  const users = (userRows ?? []) as User[];
+
+  const { data: avail } = await supabase
+    .from('availability')
+    .select('user_id, day_of_week, slot_index')
+    .eq('board_id', board.id);
+  const availRows = avail ?? [];
+
+  const availability: Record<string, Availability> = {};
+  for (const row of availRows) {
+    const slotId = `${row.day_of_week}-${row.slot_index}`;
+    if (!availability[row.user_id]) availability[row.user_id] = {};
+    availability[row.user_id][slotId] = true;
+  }
+
+  return { id: board.code, users, availability };
+}
+
+/**
+ * Toggle availability for a specific slot.
+ */
 export async function toggleAvailability(
-  boardId: string,
+  boardCode: string,
   userId: string,
-  timeSlot: string,
+  dayOfWeek: number,
+  slotIndex: number,
   isAvailable: boolean
 ): Promise<void> {
-  const board = await getBoard(boardId);
-  if (!board) {
-    throw new Error('Board not found');
-  }
+  const { data: board } = await supabase
+    .from('boards')
+    .select('id')
+    .eq('code', boardCode)
+    .single();
 
-  if (!board.availability[userId]) {
-    board.availability[userId] = {};
-  }
+  if (!board) throw new Error('Board not found');
+
+  const payload = {
+    board_id: board.id,
+    user_id: userId,
+    day_of_week: dayOfWeek,
+    slot_index: slotIndex,
+  } satisfies Database['public']['Tables']['availability']['Insert'];
 
   if (isAvailable) {
-    board.availability[userId][timeSlot] = true;
+    const { error } = await supabase
+      .from('availability')
+      .insert(payload)
+      .select()
+      .single();
+    if (error && error.code !== '23505') throw new Error(error.message);
   } else {
-    delete board.availability[userId][timeSlot];
+    const { error } = await supabase
+      .from('availability')
+      .delete()
+      .match(payload);
+    if (error) throw new Error(error.message);
   }
-  
-  boards.set(boardId, board);
 }

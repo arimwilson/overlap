@@ -4,24 +4,18 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import {
   createBoard as dbCreateBoard,
+  joinBoard as dbJoinBoard,
   getBoard,
   toggleAvailability as dbToggleAvailability,
-  updateUserOnBoard,
 } from '@/lib/db';
 import { setUserCookie } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
 const nameSchema = z.string().min(2, 'Name must be at least 2 characters').max(50);
-const boardIdSchema = z.string().length(5, 'Invalid board code').regex(/^[A-Z0-9]+$/, 'Invalid board code');
-
-function generateBoardId(length = 5) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
+const boardIdSchema = z
+  .string()
+  .length(5, 'Invalid board code')
+  .regex(/^[A-Z0-9]+$/, 'Invalid board code');
 
 export async function createBoard(formData: FormData) {
   const nameResult = nameSchema.safeParse(formData.get('name'));
@@ -33,13 +27,12 @@ export async function createBoard(formData: FormData) {
     return redirect('/?error=' + encodeURIComponent(nameResult.error.errors[0].message));
   }
 
-  const boardId = generateBoardId();
-  const user = await dbCreateBoard(boardId, nameResult.data, timezone);
+  const { boardCode, userId } = await dbCreateBoard(nameResult.data, timezone);
 
-  setUserCookie(boardId, user.id);
+  setUserCookie(boardCode, userId);
 
-  revalidatePath(`/board/${boardId}`);
-  redirect(`/board/${boardId}`);
+  revalidatePath(`/board/${boardCode}`);
+  redirect(`/board/${boardCode}`);
 }
 
 export async function joinBoard(formData: FormData) {
@@ -61,8 +54,8 @@ export async function joinBoard(formData: FormData) {
     return redirect(`/board/${boardIdResult.data}?error=` + encodeURIComponent("This board is full."));
   }
 
-  const user = await updateUserOnBoard(boardIdResult.data, { name: nameResult.data, timezone });
-  setUserCookie(boardIdResult.data, user.id);
+  const { userId } = await dbJoinBoard(boardIdResult.data, nameResult.data, timezone);
+  setUserCookie(boardIdResult.data, userId);
 
   revalidatePath(`/board/${boardIdResult.data}`);
   redirect(`/board/${boardIdResult.data}`);
@@ -85,15 +78,18 @@ export async function joinBoardFromPage(boardId: string, formData: FormData) {
       return { error: 'This board is full.' };
     }
   
-    const user = await updateUserOnBoard(boardId, { name: nameResult.data, timezone });
-    setUserCookie(boardId, user.id);
+    const { userId } = await dbJoinBoard(boardId, nameResult.data, timezone);
+    setUserCookie(boardId, userId);
   
     revalidatePath(`/board/${boardId}`);
     return { success: true };
 }
 
 export async function toggleAvailability(boardId: string, userId: string, timeSlot: string, isAvailable: boolean) {
-    await dbToggleAvailability(boardId, userId, timeSlot, isAvailable);
+    const [dayStr, slotStr] = timeSlot.split('-');
+    const dayOfWeek = parseInt(dayStr, 10);
+    const slotIndex = parseInt(slotStr, 10);
+    await dbToggleAvailability(boardId, userId, dayOfWeek, slotIndex, isAvailable);
     // In a real-time app, you'd use a service like Firebase Realtime DB or a WebSocket
     // to push updates to clients. For this example, revalidation is a simpler approach.
     revalidatePath(`/board/${boardId}`);
