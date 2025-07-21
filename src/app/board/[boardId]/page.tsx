@@ -4,7 +4,8 @@ import { getUserCookie } from '@/lib/auth';
 import BoardClient from '@/components/board/BoardClient';
 import JoinBoard from '@/components/board/JoinBoard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal } from 'lucide-react';
+import { Terminal, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 type BoardPageProps = {
   params: { boardId: string };
@@ -30,15 +31,20 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-       {error && (
-         <div className="container mx-auto pt-4">
-            <Alert variant="destructive">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>Oops!</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-         </div>
-        )}
+      <div className="container mx-auto p-4">
+        <Link href="/" className="inline-flex items-center text-primary hover:underline">
+          <ArrowLeft className="w-4 h-4 mr-1" /> Back to Home
+        </Link>
+      </div>
+      {error && (
+        <div className="container mx-auto pt-4">
+          <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Oops!</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      )}
       <BoardClient board={board} currentUserId={currentUser.id} />
     </div>
   );
