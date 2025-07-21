@@ -18,22 +18,64 @@ export default function CalendarGrid({
   currentUserId,
   onToggle,
 }: CalendarGridProps) {
-  const timeLabels = Array.from({ length: SLOTS_PER_DAY }, (_, i) => {
-    const hour = Math.floor(i / 2);
-    const minute = i % 2 === 0 ? '00' : '30';
-    const ampm = hour < 12 ? 'AM' : 'PM';
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    return `${displayHour}:${minute} ${ampm}`;
+  const boardTimezone = users[0]?.timezone || 'UTC';
+
+  const getOffset = (tz: string) => {
+    const now = new Date();
+    const tzDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+    return (tzDate.getTime() - now.getTime()) / 60000;
+  };
+
+  const uniqueTimezones = Array.from(new Set(users.map((u) => u.timezone)));
+  const timezones = [
+    boardTimezone,
+    ...uniqueTimezones.filter((tz) => tz !== boardTimezone),
+  ];
+
+  const timezoneAbbr = (tz: string) => {
+    return (
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        timeZoneName: 'short',
+      })
+        .formatToParts(new Date())
+        .find((p) => p.type === 'timeZoneName')?.value || tz
+    );
+  };
+
+  const offsets = timezones.map(getOffset);
+  const boardOffset = offsets[0];
+
+  const timeLabelsByTz = timezones.map((tz, idx) => {
+    const offset = offsets[idx];
+    return Array.from({ length: SLOTS_PER_DAY }, (_, i) => {
+      const boardMinutes = i * 30;
+      const utcMinutes = boardMinutes - boardOffset;
+      const tzMinutes = (utcMinutes + offset + 1440) % 1440;
+      const hour = Math.floor(tzMinutes / 60);
+      const minute = tzMinutes % 60 === 0 ? '00' : '30';
+      const ampm = hour < 12 ? 'AM' : 'PM';
+      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      return `${displayHour}:${minute} ${ampm}`;
+    });
   });
 
-  // Get the current viewer's UTC offset in minutes
-  const viewerOffsetMinutes = new Date().getTimezoneOffset();
+  const columnStyle = {
+    gridTemplateColumns: `${timezones.map(() => 'max-content').join(' ')} repeat(7,minmax(100px,1fr))`,
+  } as React.CSSProperties;
 
   return (
     <div className="relative overflow-auto shadow-lg rounded-lg bg-card border">
-        <div className="grid grid-cols-[auto_repeat(7,minmax(100px,1fr))]">
-        {/* Header Corner */}
-        <div className="sticky top-0 left-0 z-20 p-2 bg-muted border-b border-r"></div>
+        <div className="grid" style={columnStyle}>
+        {/* Header for Timezone Abbreviations */}
+        {timezones.map((tz) => (
+          <div
+            key={tz}
+            className="sticky top-0 z-20 p-2 text-center font-semibold bg-muted border-b border-r"
+          >
+            {timezoneAbbr(tz)}
+          </div>
+        ))}
         {/* Day Headers */}
         {DAYS.map((day) => (
           <div
@@ -45,20 +87,23 @@ export default function CalendarGrid({
         ))}
 
         {/* Time Labels and Grid Cells */}
-        {timeLabels.map((time, timeIndex) => (
+        {timeLabelsByTz[0].map((_, timeIndex) => (
           <React.Fragment key={`time-row-${timeIndex}`}>
-            {/* Time Label */}
-            <div
-              className="sticky left-0 z-10 p-2 text-right text-xs font-mono bg-muted border-r whitespace-nowrap"
-            >
-              {time}
-            </div>
+            {/* Time Labels for each timezone */}
+            {timezones.map((_, tzIdx) => (
+              <div
+                key={`${tzIdx}-${timeIndex}`}
+                className="p-2 text-right text-xs font-mono bg-muted border-r whitespace-nowrap"
+              >
+                {timeLabelsByTz[tzIdx][timeIndex]}
+              </div>
+            ))}
 
             {/* Cells for the row */}
             {DAYS.map((_, dayIndex) => {
-              // Calculate UTC time slot based on viewer's local time
-              const localMinutes = dayIndex * 1440 + timeIndex * 30;
-              const utcMinutes = localMinutes + viewerOffsetMinutes;
+              // Calculate UTC time slot based on board timezone
+              const boardLocalMinutes = dayIndex * 1440 + timeIndex * 30;
+              const utcMinutes = boardLocalMinutes - boardOffset;
               
               const utcDayIndex = Math.floor(utcMinutes / 1440 + 7) % 7;
               const utcTimeIndex = Math.floor((utcMinutes % 1440) / 30 + SLOTS_PER_DAY) % SLOTS_PER_DAY;
