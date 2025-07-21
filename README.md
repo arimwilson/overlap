@@ -11,7 +11,16 @@ Overlap is a Next.js application for scheduling across time zones. Each board le
 - **Real-time overlap view** showing which teammates are free in each slot.
 - **Cookies remember your user ID** so you remain on the board when you return.
 
-Data is stored in an in‑memory database in `src/lib/db.ts`. In production this would be replaced with a persistent store such as Firebase.
+Data persistence is handled by **Supabase** via the helper functions in
+`src/lib/db.ts`. To run the project you will need credentials for your own
+Supabase instance.
+
+Create a `.env.local` file with the following variables:
+
+```
+SUPABASE_URL=<your project url>
+SUPABASE_ANON_KEY=<public anon or service role key>
+```
 
 ## Development
 
