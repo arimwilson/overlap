@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   createBoard as dbCreateBoard,
   getBoard,
+  toggleAvailability as dbToggleAvailability,
   updateUserOnBoard,
 } from '@/lib/db';
 import { setUserCookie } from '@/lib/auth';
@@ -87,4 +88,11 @@ export async function joinBoardFromPage(boardId: string, formData: FormData) {
   
     revalidatePath(`/board/${boardId}`);
     return { success: true };
+}
+
+export async function toggleAvailability(boardId: string, userId: string, timeSlot: string, isAvailable: boolean) {
+    await dbToggleAvailability(boardId, userId, timeSlot, isAvailable);
+    // In a real-time app, you'd use a service like Firebase Realtime DB or a WebSocket
+    // to push updates to clients. For this example, revalidation is a simpler approach.
+    revalidatePath(`/board/${boardId}`);
 }

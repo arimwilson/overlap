@@ -4,7 +4,7 @@ import type { Board } from '@/lib/types';
 import { useState, useTransition } from 'react';
 import UserRoster from './UserRoster';
 import CalendarGrid from './CalendarGrid';
-import { toggleAvailability as toggleAvailabilityAction } from '@/lib/db';
+import { toggleAvailability as toggleAvailabilityAction } from '@/app/actions';
 
 export default function BoardClient({ board, currentUserId }: { board: Board; currentUserId: string }) {
   const [boardState, setBoardState] = useState(board);
@@ -30,9 +30,16 @@ export default function BoardClient({ board, currentUserId }: { board: Board; cu
     startTransition(async () => {
         await toggleAvailabilityAction(board.id, currentUserId, timeSlot, isAvailable);
         // In a real app with websockets/listeners, this re-fetch would be replaced
-        // by the listener updating the state.
+        // by the listener updating the state. For this example, we rely on the
+        // page revalidating.
     });
   };
+
+  // The board state can become stale if another user joins.
+  // We can update it when the component re-renders with new props.
+  if (board.id !== boardState.id || board.users.length !== boardState.users.length) {
+      setBoardState(board);
+  }
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen">
