@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,22 +25,36 @@ export default function JoinBoard({ boardId, boardUsers }: { boardId: string, bo
   const [isOpen, setIsOpen] = useState(false);
   const [timezone, setTimezone] = useState('UTC');
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     setIsOpen(true);
     setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // If the dialog is closed without joining, navigate to the home page
+      // to avoid seeing a blank page.
+      router.push('/');
+    }
+    setIsOpen(open);
+  };
+
   const formAction = async (formData: FormData) => {
     formData.append('timezone', timezone);
     const result = await joinBoardFromPage(boardId, formData);
     if (result.error) {
       setError(result.error);
+    } else if (result.success) {
+      setIsOpen(false);
+      // Manually refresh to ensure the page re-renders with the new user cookie.
+      router.refresh();
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className='font-headline'>Join Board "{boardId}"</DialogTitle>
