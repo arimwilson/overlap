@@ -5,7 +5,6 @@ import { useState, useTransition } from 'react';
 import UserRoster from './UserRoster';
 import CalendarGrid from './CalendarGrid';
 import { toggleAvailability as toggleAvailabilityAction } from '@/lib/db';
-import { revalidatePath } from 'next/cache';
 
 export default function BoardClient({ board, currentUserId }: { board: Board; currentUserId: string }) {
   const [boardState, setBoardState] = useState(board);
