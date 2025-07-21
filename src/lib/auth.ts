@@ -1,22 +1,19 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { cookies } from 'next/headers'
 
-const COOKIE_NAME = 'overlap-user';
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-  maxAge: 60 * 60 * 24 * 30, // 30 days
-};
+const COOKIE_PREFIX = 'overlap_'
 
-export async function setUserCookie(_boardId: string, userId: string) {
-  const store = await cookies();
-  store.set(COOKIE_NAME, userId, COOKIE_OPTIONS);
+export async function setUserCookie(boardUuid: string, userUuid: string) {
+  const store = await cookies()
+  store.set(`${COOKIE_PREFIX}${boardUuid}`, userUuid, {
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+    sameSite: 'lax',
+  })
 }
 
-export async function getUserCookie(_boardId: string): Promise<string | null> {
-  const store = await cookies();
-  return store.get(COOKIE_NAME)?.value || null;
+export async function getUserCookie(boardUuid: string) {
+  const store = await cookies()
+  return store.get(`${COOKIE_PREFIX}${boardUuid}`)?.value || null
 }
