@@ -134,3 +134,27 @@ export async function toggleAvailability(
     if (error) throw new Error(error.message);
   }
 }
+
+/**
+ * Update a user's timezone on a board.
+ */
+export async function updateUserTimezone(
+  boardCode: string,
+  userId: string,
+  timezone: string
+): Promise<void> {
+  const { data: board } = await supabase
+    .from('boards')
+    .select('id')
+    .eq('code', boardCode)
+    .single();
+
+  if (!board) throw new Error('Board not found');
+
+  const { error } = await supabase
+    .from('board_users')
+    .update({ timezone })
+    .match({ board_id: board.id, id: userId });
+
+  if (error) throw new Error(error.message);
+}
