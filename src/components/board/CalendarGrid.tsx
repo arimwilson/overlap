@@ -1,5 +1,6 @@
 import type { Availability, User } from '@/lib/types';
 import TimeSlotCell from './TimeSlotCell';
+import React from 'react';
 
 type CalendarGridProps = {
   availability: Record<string, Availability>;
@@ -45,10 +46,9 @@ export default function CalendarGrid({
 
         {/* Time Labels and Grid Cells */}
         {timeLabels.map((time, timeIndex) => (
-          <>
+          <React.Fragment key={`time-row-${timeIndex}`}>
             {/* Time Label */}
             <div
-              key={`time-${timeIndex}`}
               className="sticky left-0 z-10 p-2 text-right text-xs font-mono bg-muted border-r whitespace-nowrap"
             >
               {time}
@@ -82,7 +82,7 @@ export default function CalendarGrid({
                 />
               );
             })}
-          </>
+          </React.Fragment>
         ))}
       </div>
     </div>
