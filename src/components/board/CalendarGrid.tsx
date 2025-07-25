@@ -11,6 +11,7 @@ type CalendarGridProps = {
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SLOTS_PER_DAY = 48;
+const TIME_COL_WIDTH = 80; // px width for sticky time label columns
 
 export default function CalendarGrid({
   availability,
@@ -60,6 +61,9 @@ export default function CalendarGrid({
     });
   });
 
+  // Use an explicit grid template so the number of sticky time label columns
+  // matches the number of unique timezones. Tailwind can't express this
+  // dynamically, so we build the string in JS.
   const columnStyle = {
     gridTemplateColumns: `${timezones.map(() => 'max-content').join(' ')} repeat(7,minmax(100px,1fr))`,
   } as React.CSSProperties;
@@ -68,10 +72,11 @@ export default function CalendarGrid({
     <div className="relative overflow-auto shadow-lg rounded-lg bg-card border">
         <div className="grid" style={columnStyle}>
         {/* Header for Timezone Abbreviations */}
-        {timezones.map((tz) => (
+        {timezones.map((tz, tzIdx) => (
           <div
             key={tz}
-            className="sticky top-0 z-20 p-2 text-center font-semibold bg-muted border-b border-r"
+            className={`sticky top-0 ${tzIdx === 0 ? 'z-30' : 'z-20'} p-2 text-center font-semibold bg-muted border-b border-r w-20`}
+            style={{ left: tzIdx * TIME_COL_WIDTH }}
           >
             {timezoneAbbr(tz)}
           </div>
@@ -93,7 +98,8 @@ export default function CalendarGrid({
             {timezones.map((_, tzIdx) => (
               <div
                 key={`${tzIdx}-${timeIndex}`}
-                className="p-2 text-right text-xs font-mono bg-muted border-r whitespace-nowrap"
+                className="sticky left-0 z-20 p-2 pr-2 text-right text-xs font-mono bg-muted border-r w-20 whitespace-nowrap"
+                style={{ left: tzIdx * TIME_COL_WIDTH }}
               >
                 {timeLabelsByTz[tzIdx][timeIndex]}
               </div>
