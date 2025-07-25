@@ -39,7 +39,7 @@ export default function TimeSlotCell({
         <TooltipTrigger asChild>
           <div
             onClick={handleClick}
-            className="h-10 border-b border-r flex items-center justify-center cursor-pointer transition-all duration-200 ease-in-out relative hover:ring-2 hover:ring-primary hover:z-10"
+            className="h-10 border-b border-r border-border/70 flex items-center justify-center cursor-pointer transition-all duration-200 ease-in-out relative hover:ring-2 hover:ring-primary hover:z-10"
             style={{ backgroundColor }}
           >
             {isCurrentUserAvailable && (
