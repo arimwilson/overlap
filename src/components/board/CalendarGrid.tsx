@@ -61,6 +61,7 @@ export default function CalendarGrid({
   });
 
   const TIME_COL_WIDTH = 80; // width in px for sticky time columns
+  const HEADER_HEIGHT = 40; // height in px for the top header rows
   const columnStyle = {
     gridTemplateColumns: `${timezones
       .map(() => `${TIME_COL_WIDTH}px`)
@@ -74,7 +75,7 @@ export default function CalendarGrid({
         {timezones.map((tz, idx) => (
           <div
             key={tz}
-            className="sticky top-0 z-20 p-2 text-center font-semibold bg-muted border-b border-r"
+            className="sticky top-0 z-20 p-2 text-center font-semibold bg-muted border-b border-r border-border/70 h-10"
             style={{ left: idx * TIME_COL_WIDTH }}
           >
             {timezoneAbbr(tz)}
@@ -84,7 +85,8 @@ export default function CalendarGrid({
         {DAYS.map((day) => (
           <div
             key={day}
-            className="sticky top-0 z-10 p-2 text-center font-semibold bg-muted border-b border-r"
+            className="sticky z-10 p-2 text-center font-semibold bg-muted border-b border-r border-border/70 h-10"
+            style={{ top: HEADER_HEIGHT }}
           >
             {day}
           </div>
@@ -97,7 +99,7 @@ export default function CalendarGrid({
             {timezones.map((_, tzIdx) => (
               <div
                 key={`${tzIdx}-${timeIndex}`}
-                className="p-2 text-right text-xs font-mono bg-muted border-r whitespace-nowrap sticky z-10"
+                className="p-2 text-right text-xs font-mono bg-muted border-r border-border/70 whitespace-nowrap sticky z-10"
                 style={{ left: tzIdx * TIME_COL_WIDTH }}
               >
                 {timeLabelsByTz[tzIdx][timeIndex]}
